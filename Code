@@ -1,0 +1,60 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan 15 18:02:46 2020
+
+@author: Shadow
+"""
+
+####
+#### Importar packages
+####
+
+import pandas as pd
+from bs4 import BeautifulSoup
+import time
+import requests
+import re
+
+###########
+########### Definition of input files 
+###########
+
+tickers1=pd.read_csv('cboesymboldirequityindex.csv') 
+tickers=pd.read_stata('var_P_total.dta')
+
+##########
+########## Start
+########## 
+
+List_Datos=[]                                                                 #### Empty list for store data 
+for i in symbols_tickers:                                                     #### Bucle for get information by ticker.
+  start_time=time.time()                                                      #### function to estimate the time 
+  url = r'https://finance.yahoo.com/quote/'+ i +'?p=' + i + '&.tsrc=fin-srch' #### Definition of URL
+  soupMk=BeautifulSoup( requests.get(url).content )                           #### Get html code of website      
+  if not len(soupMk)==0:                                                      #### Conditional to identify if the ticker is not available in Yahoo Finances.
+    Table=soupMk.find_all('tr', class_='Bxz(bb) Bdbw(1px) Bdbs(s) Bdc($seperatorColor) H(36px) ' ) #### Get the section of code which contain the information 
+    for xxx in Table:                                                         #### From selected section of code, looking for information
+      text=xxx.text.strip()                                                   #### Get text of code.
+      if re.search(r'Market', text):                                          #### Get Market Capitalization information
+        MarkCap=text.split('Cap')
+      if re.search(r'Previous', text):                                        #### Get close price of ticker.
+        price_close=text.split('Close')
+        price_close[1]=price_close[1]
+      if re.search(r'Beta', text):                                            #### Get beta estimation
+        beta=text.split('(5Y Monthly)')
+
+      
+    Data=[ i, MarkCap[1], price_close[1], beta[1] ]                           #### Conform a vector.
+    List_Datos.append(Data)                                                   #### Add vector in list.  
+  print(Data)
+  print('-------- %s seconds--------' % ( time.time() - start_time ) )        #### Print time of
+  
+betaTAble=pd.DataFrame(List_Datos, columns=['symbol', 'marckap', 'price_close', 'beta'] )     #### Transform list to dataframe
+betaTAble=betaTAble.drop_duplicates()                                                         #### Drop duplicates information
+betaTAble.to_csv('betaTAble.csv', sep=";")                                                    #### Export to CSV file.
+  
+  
+  
+  
+  
+  
